@@ -46,6 +46,9 @@ def answer_query(query: str) -> PipelineResult:
 if __name__ == "__main__":
     import sys
 
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     query = " ".join(sys.argv[1:])
     if not query:
         print("Usage: python pipeline.py \"<your question>\"")
