@@ -1,0 +1,88 @@
+# Master Build Prompt — Sri Lanka Government Services Voice Assistant
+
+Paste this whole prompt into your coding agent (Claude Code or similar) to build the project. Fill in the `[ ]` placeholders before running it.
+
+## Role
+
+You are building a complete, working multi-agent AI application from scratch, inside this repository on the `Dev` branch. Work incrementally and commit as you go — do not implement the whole project and commit once at the end. Treat this like a real multi-week build, not a single generation pass.
+
+## Project brief
+
+Build a voice-first assistant that helps Sri Lankan citizens navigate government procedures (NIC renewal, birth/marriage/death certificates via Grama Niladhari, passport renewal, driving license renewal) in Sinhala and English. A user asks a question by voice or text; the system identifies which procedure applies (including branching cases like lost vs. damaged NIC), retrieves the real steps from a curated knowledge base, asks a clarifying question if the situation is ambiguous, and responds with a plain-language step-by-step answer — spoken back in Sinhala — with a source citation.
+
+## Architecture
+
+- **Router agent** — one LLM call, classifies the incoming query into a service domain (NIC / civil registration / passport / driving license) and flags whether a clarifying question is needed before an answer can be given.
+- **Specialist agent** — given the domain and query, retrieves the top-k relevant chunks from the vector store (filtered to that domain) and drafts the answer in English, grounded strictly in the retrieved text. It must not add facts that weren't retrieved.
+- **Composer agent** — takes the English draft and produces the final plain-spoken Sinhala version (simple register, not bureaucratic Sinhala).
+- **Translate-late pattern** — all retrieval and reasoning happens in English internally; only the final composer step localizes to Sinhala. Do not embed or retrieve in Sinhala directly.
+
+## Tech stack (fixed — do not substitute without flagging it in a commit message)
+
+- LLM: `openai/gpt-oss-120b` via OpenRouter
+- STT: Whisper large-v3 (`faster-whisper` or the OpenAI API)
+- TTS: Google Cloud TTS (`si-LK` voice)
+- Vector store: Chroma, local/embedded
+- Embeddings: OpenAI `text-embedding-3-small`
+- Backend: FastAPI
+- Frontend: Streamlit
+- Python 3.11+
+
+## Folder structure
+
+```
+project/
+  data/procedures/       # curated procedure docs, one per file
+  ingest.py              # embeds docs into Chroma
+  agents/
+    router.py
+    specialist.py
+    composer.py
+  pipeline.py             # chains router -> specialist -> composer
+  main.py                 # FastAPI app (/ask, /ask-voice)
+  app.py                  # Streamlit frontend
+  .env.example
+  requirements.txt
+  README.md
+```
+
+## Data
+
+Curate 5–8 government procedures as markdown docs in `data/procedures/` before building the ingestion pipeline. Each doc needs: title, eligibility/branches (e.g. lost vs. damaged vs. expired NIC are different procedures), required documents, steps, fees, submission location, source link, last-verified date.
+
+Suggested initial set: NIC renewal, NIC replacement (lost/damaged), birth certificate via GN, marriage certificate via GN, passport renewal, driving license renewal.
+
+## Build order — do not skip ahead
+
+1. Repo scaffold: `requirements.txt`, `.env.example`, README stub.
+2. `data/procedures/*.md` + `ingest.py` + a standalone retrieval smoke test (query "lost my NIC" and confirm it returns the right doc) before building any agent.
+3. `agents/router.py`.
+4. `agents/specialist.py`.
+5. `agents/composer.py` — test Sinhala output quality specifically. If `gpt-oss-120b`'s Sinhala is weak, note it in the README and swap only this call to a stronger model for localization; keep the rest on `gpt-oss-120b`.
+6. `pipeline.py` chaining all three, tested end-to-end from the CLI before touching the API layer.
+7. `main.py` with `POST /ask` — test via curl/Postman before the frontend.
+8. Voice layer, added last: `POST /ask-voice` (STT → same pipeline → TTS). Test STT and TTS independently before chaining them.
+9. `app.py` Streamlit frontend: mic input, chat history, visible source citation per answer, audio playback.
+10. Demo hardening: 3–4 scripted test queries that are known-good, a visible disclaimer ("informational only, verify at your local office"), and a text-input fallback in case live voice fails.
+
+## Git workflow — read carefully
+
+- All work happens on the `Dev` branch. Never commit directly to `Main`.
+- Commit in small, logical, incremental commits that reflect real development steps (e.g. "add procedure data for NIC renewal", "implement router agent", "add Chroma ingestion script and smoke test") — not one giant commit per phase, and never a single commit for the whole project.
+- Write every commit message as if you are the sole human author. Do not add any AI/assistant co-author line, tool attribution, "generated by," or similar text to any commit message or PR description.
+- Aim for a realistic, varied volume of commits across the whole build — small and frequent, the way an individual developer actually commits over time, not uniform batch sizes.
+- A separate scheduled process paces these commits onto `Main` over time. You do not need to think about dates or scheduling — just build and commit normally on `Dev`.
+
+## What not to do
+
+- Don't pull in LangGraph, CrewAI, or other agent frameworks — hand-rolled function chaining only.
+- Don't try to cover more than 5–8 procedures.
+- Don't build multi-turn conversation memory beyond a single clarifying question.
+- Don't skip the standalone retrieval smoke test in step 2.
+
+## Definition of done
+
+- `pipeline.py` correctly answers all curated procedures from the CLI.
+- `/ask` and `/ask-voice` both work via curl/Postman.
+- The Streamlit app runs end-to-end with at least one live voice demo query working.
+- `README.md` documents setup, required API keys, and known limitations.

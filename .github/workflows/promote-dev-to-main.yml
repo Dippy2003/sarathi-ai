@@ -1,0 +1,106 @@
+# .github/workflows/promote-dev-to-main.yml
+#
+# Paces the finished commits on `Dev` onto `Main` over a fixed window
+# (default 30 days), with a varied number of commits promoted per day
+# instead of a flat daily count. Same forward-dated drip pattern used
+# on repvision-yolo-pose and the Sinhala latent-language project.
+#
+# HOW IT WORKS
+# - Each night the job counts commits that exist on Dev but not yet on
+#   Main, and how many days are left in the window.
+# - It picks a randomized batch size around the average needed to
+#   finish on time (so some days promote more, some fewer), then
+#   fast-forwards Main to that point on Dev. No merge commit is
+#   created, so every commit keeps its original author and message
+#   exactly as written on Dev.
+# - On the last day of the window (or if it's ever behind schedule)
+#   it promotes everything remaining, so the repo is always caught up
+#   by END of the window regardless of variance on earlier days.
+#
+# SETUP — edit before first run:
+# 1. Set START_DATE below to the date you want the drip to begin
+#    (UTC, YYYY-MM-DD). TOTAL_DAYS defaults to 30.
+# 2. Confirm branch names match your repo (`Main` / `Dev`, capital M
+#    as used elsewhere) — adjust the `git` commands below if different.
+# 3. Make sure Dev already holds the full, rebased commit history you
+#    want promoted (this workflow does not create commits, only moves
+#    Main forward through existing ones on Dev).
+# 4. Requires Settings -> Actions -> General -> Workflow permissions
+#    set to "Read and write permissions" so the default GITHUB_TOKEN
+#    can push to Main. If you add branch protection on Main later,
+#    this will need a PAT that can bypass it, or a PR+auto-merge step
+#    instead of a direct push.
+
+name: Promote Dev to Main (paced release)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # nightly at 03:00 UTC — same time used previously
+  workflow_dispatch: {}     # allows a manual run for testing
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: Main
+
+      - name: Promote a paced batch of commits from Dev
+        env:
+          START_DATE: "2026-09-15"   # <-- EDIT: first day of the release window
+          TOTAL_DAYS: "30"
+        run: |
+          set -euo pipefail
+
+          git config user.name "Dippy2003"
+          git config user.email "200962156+Dippy2003@users.noreply.github.com"
+
+          git fetch origin Main Dev
+
+          remaining_commits=$(git rev-list --count origin/Main..origin/Dev)
+          if [ "$remaining_commits" -eq 0 ]; then
+            echo "Main is already up to date with Dev. Nothing to promote."
+            exit 0
+          fi
+
+          today=$(date -u +%Y-%m-%d)
+          start_epoch=$(date -u -d "$START_DATE" +%s)
+          today_epoch=$(date -u -d "$today" +%s)
+          day_index=$(( (today_epoch - start_epoch) / 86400 + 1 ))
+
+          if [ "$day_index" -lt 1 ]; then
+            echo "Start date ($START_DATE) not reached yet. Skipping."
+            exit 0
+          fi
+
+          remaining_days=$(( TOTAL_DAYS - day_index + 1 ))
+
+          if [ "$remaining_days" -le 1 ]; then
+            # Last day of the window, or past it: catch up fully.
+            batch=$remaining_commits
+          else
+            avg=$(( (remaining_commits + remaining_days - 1) / remaining_days ))
+            min=$(( avg / 2 ))
+            [ "$min" -lt 1 ] && min=1
+            max=$(( avg * 3 / 2 ))
+            [ "$max" -gt "$remaining_commits" ] && max=$remaining_commits
+            [ "$max" -lt "$min" ] && max=$min
+            range=$(( max - min + 1 ))
+            batch=$(( min + RANDOM % range ))
+          fi
+
+          echo "Day $day_index of $TOTAL_DAYS — $remaining_commits commits behind, promoting $batch today."
+
+          target_sha=$(git rev-list --reverse origin/Main..origin/Dev | sed -n "${batch}p")
+
+          git checkout Main
+          git merge --ff-only "$target_sha"
+          git push origin Main
+
+          echo "Promoted Main to $target_sha."
