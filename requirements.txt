@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+streamlit
+chromadb
+openai
+faster-whisper
+google-cloud-texttospeech
+python-dotenv
+pydantic
