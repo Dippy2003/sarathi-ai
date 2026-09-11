@@ -7,7 +7,10 @@ from dataclasses import dataclass, field
 
 import chromadb
 from chromadb.utils import embedding_functions
+from dotenv import load_dotenv
 from openai import OpenAI
+
+load_dotenv()
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 SPECIALIST_MODEL = "openai/gpt-oss-120b"

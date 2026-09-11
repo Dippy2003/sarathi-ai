@@ -7,7 +7,10 @@ import os
 from dataclasses import dataclass
 from typing import Literal, Optional
 
+from dotenv import load_dotenv
 from openai import OpenAI
+
+load_dotenv()
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 ROUTER_MODEL = "openai/gpt-oss-120b"
