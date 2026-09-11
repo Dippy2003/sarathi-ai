@@ -58,6 +58,7 @@ def compose_sinhala(english_answer: str, sources: list[str]) -> ComposerResult:
             {"role": "user", "content": english_answer},
         ],
         temperature=0.3,
+        max_tokens=1000,
     )
     sinhala_text = response.choices[0].message.content.strip()
 
