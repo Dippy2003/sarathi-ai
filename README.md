@@ -36,8 +36,8 @@ Router -> specialist -> composer pipeline is working end-to-end, exposed via
 - **`gpt-oss-120b`'s Sinhala output is unreliable.** In testing, the composer
   step occasionally produced degenerate output (a single word repeated
   hundreds of times) when using `gpt-oss-120b` for the Sinhala localization
-  call. Set `COMPOSER_MODEL=google/gemini-2.5-flash` in `.env` to use a
-  model that produced clean, natural Sinhala in testing instead - this only
-  changes the final localization call; routing and retrieval/drafting stay
-  on `gpt-oss-120b` as specified.
+  call. The composer therefore defaults to `google/gemini-2.5-flash` instead
+  (set `COMPOSER_MODEL` in `.env` to override) - this only changes the final
+  localization call; routing and retrieval/drafting stay on `gpt-oss-120b`
+  as specified.
 - Voice layer (STT/TTS) and the Streamlit frontend are not built yet.

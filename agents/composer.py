@@ -3,10 +3,12 @@ the final plain-spoken Sinhala version (simple, everyday register - not
 bureaucratic Sinhala). This is the only step that localizes to Sinhala;
 retrieval and reasoning stay in English (translate-late pattern).
 
-COMPOSER_MODEL defaults to the same model as the rest of the pipeline
-(openai/gpt-oss-120b). If its Sinhala output quality turns out weak, set
-COMPOSER_MODEL in .env to a stronger model - this is the only call that
-needs to change, everything upstream stays on gpt-oss-120b."""
+COMPOSER_MODEL defaults to google/gemini-2.5-flash rather than the rest of
+the pipeline's openai/gpt-oss-120b: in testing, gpt-oss-120b produced
+degenerate/repetitive Sinhala output (a single word repeated hundreds of
+times), while Gemini produced clean, natural Sinhala. This is the only call
+in the pipeline that uses a different model - routing and retrieval/drafting
+stay on gpt-oss-120b as specified. Set COMPOSER_MODEL in .env to override."""
 import os
 from dataclasses import dataclass
 
@@ -16,7 +18,7 @@ from openai import OpenAI
 load_dotenv()
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_COMPOSER_MODEL = "openai/gpt-oss-120b"
+DEFAULT_COMPOSER_MODEL = "google/gemini-2.5-flash"
 
 SYSTEM_PROMPT = """You are localizing a government-procedure answer into Sinhala \
 for an ordinary citizen. Translate and rewrite the English answer below into \
