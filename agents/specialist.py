@@ -6,15 +6,15 @@ import os
 from dataclasses import dataclass, field
 
 import chromadb
-from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
 from openai import OpenAI
+
+from embeddings import get_embedding_function
 
 load_dotenv()
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 SPECIALIST_MODEL = "openai/gpt-oss-120b"
-EMBEDDING_MODEL = "text-embedding-3-small"
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
 COLLECTION_NAME = "procedures"
 TOP_K = 4
@@ -49,12 +49,7 @@ def _llm_client() -> OpenAI:
 
 
 def _collection():
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set (needed for embeddings)")
-    embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
-        api_key=openai_api_key, model_name=EMBEDDING_MODEL
-    )
+    embedding_fn = get_embedding_function()
     client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
     return client.get_collection(COLLECTION_NAME, embedding_function=embedding_fn)
 

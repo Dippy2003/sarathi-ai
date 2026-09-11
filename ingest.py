@@ -7,15 +7,15 @@ import os
 import re
 
 import chromadb
-from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
+
+from embeddings import get_embedding_function
 
 load_dotenv()
 
 PROCEDURES_DIR = os.path.join(os.path.dirname(__file__), "data", "procedures")
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
 COLLECTION_NAME = "procedures"
-EMBEDDING_MODEL = "text-embedding-3-small"
 
 DOMAIN_BY_FILENAME = {
     "nic_renewal.md": "nic",
@@ -69,17 +69,11 @@ def load_documents() -> list[dict]:
 
 
 def main():
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set (needed for embeddings)")
-
     documents = load_documents()
     if not documents:
         raise RuntimeError(f"No procedure docs found in {PROCEDURES_DIR}")
 
-    embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
-        api_key=api_key, model_name=EMBEDDING_MODEL
-    )
+    embedding_fn = get_embedding_function()
 
     client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
     client.delete_collection(COLLECTION_NAME) if COLLECTION_NAME in [
