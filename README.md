@@ -6,11 +6,13 @@ driving license renewal) in Sinhala and English.
 
 ## Status
 
-Router -> specialist -> composer pipeline is working end-to-end, exposed via
-`POST /ask` and a Streamlit frontend (`app.py`). Voice layer (`POST
-/ask-voice`, STT via faster-whisper, TTS via gTTS) is built and STT/TTS are
-each verified individually - see Known limitations for what's still unverified.
-See `master-prompt.md` for the full build spec and roadmap.
+All 10 build phases from `master-prompt.md` are implemented: procedure data
+and retrieval, the router/specialist/composer agents, `pipeline.py`, the
+`/ask` and `/ask-voice` FastAPI endpoints, and the Streamlit frontend
+(`app.py`) with a disclaimer, scripted example queries, and a text-input
+fallback for when voice isn't available. See Known limitations below for
+what's substituted from the original spec and what's still worth a final
+manual check before a live demo.
 
 ## Setup
 
@@ -55,3 +57,7 @@ See `master-prompt.md` for the full build spec and roadmap.
   one request yet.** STT (faster-whisper `large-v3`) and TTS (gTTS) have each
   been verified working individually with real audio; the combined endpoint
   should still be exercised with a real audio file before a live demo.
+- The Streamlit app's mic input and button clicks haven't been exercised in
+  a real browser session (only verified that the app boots without errors) -
+  do a quick pass through the UI, including the example-query buttons and a
+  live mic recording, before demoing.
