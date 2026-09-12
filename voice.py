@@ -31,12 +31,22 @@ def _get_whisper_model() -> WhisperModel:
     return _whisper_model
 
 
-def transcribe_to_english(audio_path: str) -> str:
+def transcribe_to_english(audio_path: str, language: str | None = None) -> str:
     """Transcribe an audio file to English text, translating from Sinhala
-    (or any spoken language Whisper detects) if needed."""
+    (or any spoken language Whisper detects) if needed.
+
+    Whisper's automatic language detection only looks at the first ~30s and
+    can misidentify short/noisy Sinhala clips as a different language. Pass
+    language="si" to force correct detection when you know the speaker is
+    speaking Sinhala."""
     model = _get_whisper_model()
-    segments, _info = model.transcribe(audio_path, task="translate")
-    return " ".join(segment.text.strip() for segment in segments).strip()
+    segments, info = model.transcribe(audio_path, task="translate", language=language)
+    text = " ".join(segment.text.strip() for segment in segments).strip()
+    print(
+        f"[debug] detected language={info.language} "
+        f"(probability={info.language_probability:.2f})"
+    )
+    return text
 
 
 def synthesize_sinhala_speech(text: str) -> bytes:
@@ -82,8 +92,10 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python voice.py <path-to-audio-file>")
+        print("Usage: python voice.py <path-to-audio-file> [language-code]")
+        print("  e.g. python voice.py recording.m4a si   (force Sinhala)")
         raise SystemExit(1)
 
-    text = transcribe_to_english(sys.argv[1])
+    forced_language = sys.argv[2] if len(sys.argv) > 2 else None
+    text = transcribe_to_english(sys.argv[1], language=forced_language)
     print(f"Transcribed (English): {text}")
