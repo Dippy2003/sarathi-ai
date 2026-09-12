@@ -5,16 +5,21 @@ Sinhala and English speech are transcribed directly into English text -
 this feeds straight into the existing English-only pipeline without a
 separate translation step.
 
-TTS: Google Cloud Text-to-Speech, si-LK voice, for the final Sinhala answer.
+TTS: defaults to gTTS (Google Translate's TTS - free, no API key or billing
+account needed, supports Sinhala) since Google Cloud TTS requires a billing
+account even for free-tier usage. Set TTS_PROVIDER=google_cloud in .env
+(with GOOGLE_APPLICATION_CREDENTIALS set) to use Google Cloud TTS's si-LK
+voice instead, per the original tech stack.
 """
+import io
 import os
 
 from faster_whisper import WhisperModel
-from google.cloud import texttospeech
 
 WHISPER_MODEL_SIZE = "large-v3"
-TTS_LANGUAGE_CODE = "si-LK"
-TTS_VOICE_NAME = "si-LK-Standard-A"
+GTTS_LANGUAGE_CODE = "si"
+GOOGLE_CLOUD_TTS_LANGUAGE_CODE = "si-LK"
+GOOGLE_CLOUD_TTS_VOICE_NAME = "si-LK-Standard-A"
 
 _whisper_model: WhisperModel | None = None
 
@@ -35,7 +40,25 @@ def transcribe_to_english(audio_path: str) -> str:
 
 
 def synthesize_sinhala_speech(text: str) -> bytes:
-    """Synthesize Sinhala text to speech audio (MP3 bytes) via Google Cloud TTS."""
+    """Synthesize Sinhala text to speech audio (MP3 bytes)."""
+    provider = os.getenv("TTS_PROVIDER", "gtts").lower()
+
+    if provider == "google_cloud":
+        return _synthesize_with_google_cloud(text)
+    return _synthesize_with_gtts(text)
+
+
+def _synthesize_with_gtts(text: str) -> bytes:
+    from gtts import gTTS
+
+    buffer = io.BytesIO()
+    gTTS(text=text, lang=GTTS_LANGUAGE_CODE).write_to_fp(buffer)
+    return buffer.getvalue()
+
+
+def _synthesize_with_google_cloud(text: str) -> bytes:
+    from google.cloud import texttospeech
+
     if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
         raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS is not set")
 
@@ -43,7 +66,7 @@ def synthesize_sinhala_speech(text: str) -> bytes:
 
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
-        language_code=TTS_LANGUAGE_CODE, name=TTS_VOICE_NAME
+        language_code=GOOGLE_CLOUD_TTS_LANGUAGE_CODE, name=GOOGLE_CLOUD_TTS_VOICE_NAME
     )
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.MP3

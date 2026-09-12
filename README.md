@@ -7,7 +7,9 @@ driving license renewal) in Sinhala and English.
 ## Status
 
 Router -> specialist -> composer pipeline is working end-to-end, exposed via
-`POST /ask`. See `master-prompt.md` for the full build spec and roadmap.
+`POST /ask`. Voice layer (`POST /ask-voice`, STT via faster-whisper, TTS via
+gTTS) is built but not yet fully verified end-to-end - see Known limitations.
+See `master-prompt.md` for the full build spec and roadmap.
 
 ## Setup
 
@@ -23,8 +25,9 @@ Router -> specialist -> composer pipeline is working end-to-end, exposed via
 - OpenRouter API key (LLM: `openai/gpt-oss-120b`)
 - OpenAI API key — only needed if `EMBEDDING_PROVIDER=openai`; by default
   embeddings run locally for free (see below)
-- Google Cloud service account with Text-to-Speech access (`si-LK` voice) —
-  not wired up yet (voice layer is a later build phase)
+- No key needed for TTS by default (`TTS_PROVIDER=gtts`, free). Only needed
+  if you switch to `TTS_PROVIDER=google_cloud`: a Google Cloud service
+  account with Text-to-Speech access (`si-LK` voice)
 
 ## Known limitations
 
@@ -40,4 +43,15 @@ Router -> specialist -> composer pipeline is working end-to-end, exposed via
   (set `COMPOSER_MODEL` in `.env` to override) - this only changes the final
   localization call; routing and retrieval/drafting stay on `gpt-oss-120b`
   as specified.
-- Voice layer (STT/TTS) and the Streamlit frontend are not built yet.
+- **TTS runs via gTTS by default, not Google Cloud TTS.** `TTS_PROVIDER`
+  defaults to `gtts` (free, no API key or billing account needed - Google
+  Cloud requires billing enabled even for its free tier) instead of the
+  originally planned Google Cloud `si-LK` voice. Set
+  `TTS_PROVIDER=google_cloud` in `.env` (with `GOOGLE_APPLICATION_CREDENTIALS`
+  set) to use the original service instead.
+- **Voice layer (`/ask-voice`) is code-complete but not fully tested end to
+  end.** TTS (gTTS) has been verified directly. STT (faster-whisper
+  `large-v3`) has not been run in this environment (multi-GB model
+  download) - the `/ask-voice` endpoint's STT -> pipeline -> TTS chain
+  should be tested with a real audio file before relying on it.
+- The Streamlit frontend is not built yet.

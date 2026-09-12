@@ -4,6 +4,7 @@ streamlit
 chromadb
 openai
 faster-whisper
+gtts
 google-cloud-texttospeech
 python-dotenv
 pydantic
