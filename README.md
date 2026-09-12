@@ -7,8 +7,9 @@ driving license renewal) in Sinhala and English.
 ## Status
 
 Router -> specialist -> composer pipeline is working end-to-end, exposed via
-`POST /ask`. Voice layer (`POST /ask-voice`, STT via faster-whisper, TTS via
-gTTS) is built but not yet fully verified end-to-end - see Known limitations.
+`POST /ask` and a Streamlit frontend (`app.py`). Voice layer (`POST
+/ask-voice`, STT via faster-whisper, TTS via gTTS) is built and STT/TTS are
+each verified individually - see Known limitations for what's still unverified.
 See `master-prompt.md` for the full build spec and roadmap.
 
 ## Setup
@@ -18,7 +19,8 @@ See `master-prompt.md` for the full build spec and roadmap.
 3. Copy `.env.example` to `.env` and fill in API keys.
 4. `python ingest.py` to build the local vector index.
 5. `python pipeline.py "I lost my NIC"` to test the full pipeline from the CLI,
-   or `uvicorn main:app --reload` and `POST /ask` with `{"query": "..."}`.
+   `uvicorn main:app --reload` and `POST /ask` with `{"query": "..."}`, or
+   `streamlit run app.py` for the full chat UI (mic or text input).
 
 ## Required API keys
 
@@ -49,9 +51,7 @@ See `master-prompt.md` for the full build spec and roadmap.
   originally planned Google Cloud `si-LK` voice. Set
   `TTS_PROVIDER=google_cloud` in `.env` (with `GOOGLE_APPLICATION_CREDENTIALS`
   set) to use the original service instead.
-- **Voice layer (`/ask-voice`) is code-complete but not fully tested end to
-  end.** TTS (gTTS) has been verified directly. STT (faster-whisper
-  `large-v3`) has not been run in this environment (multi-GB model
-  download) - the `/ask-voice` endpoint's STT -> pipeline -> TTS chain
-  should be tested with a real audio file before relying on it.
-- The Streamlit frontend is not built yet.
+- **`/ask-voice`'s full chain (STT -> pipeline -> TTS) hasn't been tested as
+  one request yet.** STT (faster-whisper `large-v3`) and TTS (gTTS) have each
+  been verified working individually with real audio; the combined endpoint
+  should still be exercised with a real audio file before a live demo.
