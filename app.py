@@ -13,9 +13,21 @@ import streamlit as st
 from pipeline import answer_query
 from voice import synthesize_sinhala_speech, transcribe_to_english
 
+EXAMPLE_QUERIES = [
+    "I lost my NIC",
+    "How do I renew my passport?",
+    "How do I get a copy of my birth certificate?",
+    "My driving license has expired, what do I do?",
+]
+
 st.set_page_config(page_title="Sarathi AI", page_icon="🇱🇰")
 st.title("Sarathi AI")
 st.caption("Ask about NIC, birth/marriage certificates, passport, or driving license procedures.")
+st.warning(
+    "⚠️ This assistant provides general guidance only, for informational "
+    "purposes. Requirements, fees, and locations can change - please verify "
+    "current details at your local government office before applying."
+)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -75,10 +87,20 @@ def handle_query(query: str) -> None:
     render_message(assistant_message)
 
 
-audio_value = st.audio_input("Ask by voice")
-text_value = st.chat_input("Or type your question")
+with st.sidebar:
+    st.subheader("Try an example")
+    st.caption("Known-good demo queries, in case live voice input isn't available.")
+    example_clicked = None
+    for example in EXAMPLE_QUERIES:
+        if st.button(example, use_container_width=True):
+            example_clicked = example
 
-if audio_value is not None:
+audio_value = st.audio_input("Ask by voice")
+text_value = st.chat_input("Or type your question (works even if voice fails)")
+
+if example_clicked:
+    handle_query(example_clicked)
+elif audio_value is not None:
     audio_bytes_in = audio_value.getvalue()
     audio_hash = hashlib.md5(audio_bytes_in).hexdigest()
     if audio_hash != st.session_state.last_audio_hash:
