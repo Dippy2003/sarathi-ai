@@ -1,16 +1,16 @@
 # .github/workflows/promote-dev-to-main.yml
 #
-# Paces the finished commits on `Dev` onto `Main` over a fixed window
+# Paces the finished commits on `Dev` onto `main` over a fixed window
 # (default 30 days), with a varied number of commits promoted per day
 # instead of a flat daily count. Same forward-dated drip pattern used
 # on repvision-yolo-pose and the Sinhala latent-language project.
 #
 # HOW IT WORKS
 # - Each night the job counts commits that exist on Dev but not yet on
-#   Main, and how many days are left in the window.
+#   main, and how many days are left in the window.
 # - It picks a randomized batch size around the average needed to
 #   finish on time (so some days promote more, some fewer), then
-#   fast-forwards Main to that point on Dev. No merge commit is
+#   fast-forwards main to that point on Dev. No merge commit is
 #   created, so every commit keeps its original author and message
 #   exactly as written on Dev.
 # - On the last day of the window (or if it's ever behind schedule)
@@ -20,18 +20,18 @@
 # SETUP — edit before first run:
 # 1. Set START_DATE below to the date you want the drip to begin
 #    (UTC, YYYY-MM-DD). TOTAL_DAYS defaults to 30.
-# 2. Confirm branch names match your repo (`Main` / `Dev`, capital M
-#    as used elsewhere) — adjust the `git` commands below if different.
+# 2. Confirm branch names match your repo (`main` lowercase, `Dev` capital
+#    D) — adjust the `git` commands below if different.
 # 3. Make sure Dev already holds the full, rebased commit history you
 #    want promoted (this workflow does not create commits, only moves
-#    Main forward through existing ones on Dev).
+#    main forward through existing ones on Dev).
 # 4. Requires Settings -> Actions -> General -> Workflow permissions
 #    set to "Read and write permissions" so the default GITHUB_TOKEN
-#    can push to Main. If you add branch protection on Main later,
+#    can push to main. If you add branch protection on main later,
 #    this will need a PAT that can bypass it, or a PR+auto-merge step
 #    instead of a direct push.
 
-name: Promote Dev to Main (paced release)
+name: Promote Dev to main (paced release)
 
 on:
   schedule:
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: Main
+          ref: main
 
       - name: Promote a paced batch of commits from Dev
         env:
@@ -61,11 +61,11 @@ jobs:
           git config user.name "Dippy2003"
           git config user.email "200962156+Dippy2003@users.noreply.github.com"
 
-          git fetch origin Main Dev
+          git fetch origin main Dev
 
-          remaining_commits=$(git rev-list --count origin/Main..origin/Dev)
+          remaining_commits=$(git rev-list --count origin/main..origin/Dev)
           if [ "$remaining_commits" -eq 0 ]; then
-            echo "Main is already up to date with Dev. Nothing to promote."
+            echo "main is already up to date with Dev. Nothing to promote."
             exit 0
           fi
 
@@ -97,10 +97,10 @@ jobs:
 
           echo "Day $day_index of $TOTAL_DAYS — $remaining_commits commits behind, promoting $batch today."
 
-          target_sha=$(git rev-list --reverse origin/Main..origin/Dev | sed -n "${batch}p")
+          target_sha=$(git rev-list --reverse origin/main..origin/Dev | sed -n "${batch}p")
 
-          git checkout Main
+          git checkout main
           git merge --ff-only "$target_sha"
-          git push origin Main
+          git push origin main
 
-          echo "Promoted Main to $target_sha."
+          echo "Promoted main to $target_sha."
